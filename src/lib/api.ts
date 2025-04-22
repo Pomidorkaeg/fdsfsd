@@ -26,10 +26,21 @@ interface MediaItem {
 
 const API_BASE_URL = 'https://bds-server.onrender.com/api';
 
-// Добавляем кэширование и повторные попытки
-const cache = new Map();
+// Кэш с временем жизни
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5000; // Время жизни кэша в миллисекундах (5 секунд)
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
+
+// Функция для очистки кэша
+export const clearCache = () => {
+  cache.clear();
+};
+
+// Функция для проверки актуальности кэша
+const isCacheValid = (timestamp: number) => {
+  return Date.now() - timestamp < CACHE_TTL;
+};
 
 async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 0): Promise<Response> {
   try {
@@ -50,11 +61,11 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 
 async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  // Для GET запросов используем кэш
+  // Для GET запросов проверяем кэш
   if (options.method === undefined || options.method === 'GET') {
     const cached = cache.get(url);
-    if (cached) {
-      return cached;
+    if (cached && isCacheValid(cached.timestamp)) {
+      return cached.data;
     }
   }
 
@@ -70,16 +81,11 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   
   // Кэшируем только GET запросы
   if (options.method === undefined || options.method === 'GET') {
-    cache.set(url, data);
+    cache.set(url, { data, timestamp: Date.now() });
   }
 
   return data;
 }
-
-// Функция для очистки кэша
-export const clearCache = () => {
-  cache.clear();
-};
 
 // Players API
 export const playersApi = {
@@ -92,7 +98,7 @@ export const playersApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    clearCache(); // Очищаем кэш при изменении данных
+    clearCache();
     emitUpdate('players:update', result);
     return result;
   },
@@ -183,7 +189,7 @@ export const mediaApi = {
   },
 };
 
-// Функции для работы с тренерами
+// Coaches API
 export const coachesApi = {
   getAll: async () => {
     const data = await fetchApi('/coaches');
@@ -214,9 +220,7 @@ export const coachesApi = {
   },
 };
 
-// Аналогичные функции для других сущностей (teams, matches, tournaments)
-// с добавлением emitUpdate для каждого изменения
-
+// Teams API
 export const teamsApi = {
   getAll: async () => {
     const data = await fetchApi('/teams');
@@ -247,6 +251,7 @@ export const teamsApi = {
   },
 };
 
+// Matches API
 export const matchesApi = {
   getAll: async () => {
     const data = await fetchApi('/matches');
@@ -277,6 +282,7 @@ export const matchesApi = {
   },
 };
 
+// Tournaments API
 export const tournamentsApi = {
   getAll: async () => {
     const data = await fetchApi('/tournaments');

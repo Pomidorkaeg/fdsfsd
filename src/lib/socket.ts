@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { clearCache } from './api';
 
 // Используем реальный URL вашего сервера
 export const socket = io('https://bds-server.onrender.com', {
@@ -23,7 +24,14 @@ export type UpdateEvent =
 
 // Функция для подписки на обновления
 export const subscribeToUpdates = (event: UpdateEvent, callback: () => void) => {
-  socket.on(event, callback);
+  // При подписке на обновления сразу очищаем кэш
+  clearCache();
+  
+  socket.on(event, () => {
+    // При получении события обновления очищаем кэш и вызываем callback
+    clearCache();
+    callback();
+  });
   
   // Если сокет не подключен, пытаемся подключиться
   if (!socket.connected) {
@@ -37,6 +45,9 @@ export const subscribeToUpdates = (event: UpdateEvent, callback: () => void) => 
 
 // Функция для отправки обновлений
 export const emitUpdate = (event: UpdateEvent, data?: any) => {
+  // Очищаем кэш перед отправкой обновления
+  clearCache();
+  
   if (socket.connected) {
     socket.emit(event, data);
   } else {
@@ -51,7 +62,9 @@ export const emitUpdate = (event: UpdateEvent, data?: any) => {
 // Добавляем обработчики событий подключения
 socket.on('connect', () => {
   console.log('Connected to WebSocket server');
-  // При переподключении запрашиваем актуальные данные
+  // При переподключении очищаем весь кэш
+  clearCache();
+  // Запрашиваем актуальные данные
   emitUpdate('players:update');
   emitUpdate('news:update');
   emitUpdate('media:update');
@@ -63,12 +76,16 @@ socket.on('connect', () => {
 
 socket.on('disconnect', () => {
   console.log('Disconnected from WebSocket server');
+  // При отключении очищаем кэш
+  clearCache();
   // Автоматически пытаемся переподключиться
   socket.connect();
 });
 
 socket.on('connect_error', (error) => {
   console.error('Connection error:', error);
+  // При ошибке подключения очищаем кэш
+  clearCache();
   // Пытаемся переподключиться с небольшой задержкой
   setTimeout(() => {
     socket.connect();
