@@ -1,10 +1,32 @@
 import { emitUpdate } from './socket';
 
-// Базовый URL API
-const API_BASE_URL = 'https://pomidorkaeg.github.io/fdsfsd/api';
+interface NewsItem {
+  _id: string;
+  title: string;
+  content: string;
+  image?: string;
+  date: string;
+}
 
-// Общая функция для выполнения запросов
-async function fetchApi(endpoint: string, options: RequestInit = {}) {
+interface PlayerItem {
+  _id: string;
+  name: string;
+  position: string;
+  number: number;
+  image?: string;
+}
+
+interface MediaItem {
+  _id: string;
+  title: string;
+  type: 'image' | 'video';
+  url: string;
+  date: string;
+}
+
+const API_BASE_URL = 'https://bds-server.onrender.com/api';
+
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
@@ -20,30 +42,87 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
   return response.json();
 }
 
-// Функции для работы с игроками
+// Players API
 export const playersApi = {
-  async getAll() {
-    return fetchApi('/players');
-  },
-  async create(data: any) {
-    const result = await fetchApi('/players', {
+  getAll: () => fetchApi<PlayerItem[]>('/players'),
+  create: async (data: Omit<PlayerItem, '_id'>) => {
+    const result = await fetchApi<PlayerItem>('/players', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    emitUpdate('players:update', result);
+    emitUpdate('players:update');
     return result;
   },
-  async update(id: string, data: any) {
-    const result = await fetchApi(`/players/${id}`, {
+  update: async (id: string, data: Partial<Omit<PlayerItem, '_id'>>) => {
+    const result = await fetchApi<PlayerItem>(`/players/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    emitUpdate('players:update', result);
+    emitUpdate('players:update');
     return result;
   },
-  async delete(id: string) {
-    await fetchApi(`/players/${id}`, { method: 'DELETE' });
-    emitUpdate('players:update', { id, deleted: true });
+  delete: async (id: string) => {
+    const result = await fetchApi<{ success: boolean }>(`/players/${id}`, {
+      method: 'DELETE',
+    });
+    emitUpdate('players:update');
+    return result;
+  },
+};
+
+// News API
+export const newsApi = {
+  getAll: () => fetchApi<NewsItem[]>('/news'),
+  create: async (data: Omit<NewsItem, '_id'>) => {
+    const result = await fetchApi<NewsItem>('/news', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    emitUpdate('news:update');
+    return result;
+  },
+  update: async (id: string, data: Partial<Omit<NewsItem, '_id'>>) => {
+    const result = await fetchApi<NewsItem>(`/news/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    emitUpdate('news:update');
+    return result;
+  },
+  delete: async (id: string) => {
+    const result = await fetchApi<{ success: boolean }>(`/news/${id}`, {
+      method: 'DELETE',
+    });
+    emitUpdate('news:update');
+    return result;
+  },
+};
+
+// Media API
+export const mediaApi = {
+  getAll: () => fetchApi<MediaItem[]>('/media'),
+  create: async (data: Omit<MediaItem, '_id'>) => {
+    const result = await fetchApi<MediaItem>('/media', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    emitUpdate('media:update');
+    return result;
+  },
+  update: async (id: string, data: Partial<Omit<MediaItem, '_id'>>) => {
+    const result = await fetchApi<MediaItem>(`/media/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    emitUpdate('media:update');
+    return result;
+  },
+  delete: async (id: string) => {
+    const result = await fetchApi<{ success: boolean }>(`/media/${id}`, {
+      method: 'DELETE',
+    });
+    emitUpdate('media:update');
+    return result;
   },
 };
 
@@ -74,41 +153,10 @@ export const coachesApi = {
   },
 };
 
-// Функции для работы с новостями
-export const newsApi = {
-  async getAll() {
-    return fetchApi('/news');
-  },
-  async create(data: any) {
-    const result = await fetchApi('/news', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    emitUpdate('news:update', result);
-    return result;
-  },
-  async update(id: string, data: any) {
-    const result = await fetchApi(`/news/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    emitUpdate('news:update', result);
-    return result;
-  },
-  async delete(id: string) {
-    await fetchApi(`/news/${id}`, { method: 'DELETE' });
-    emitUpdate('news:update', { id, deleted: true });
-  },
-};
-
-// Аналогичные функции для других сущностей (teams, media, matches, tournaments)
+// Аналогичные функции для других сущностей (teams, matches, tournaments)
 // с добавлением emitUpdate для каждого изменения
 
 export const teamsApi = {
-  // ... аналогичные методы с emitUpdate
-};
-
-export const mediaApi = {
   // ... аналогичные методы с emitUpdate
 };
 

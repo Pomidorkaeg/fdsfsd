@@ -8,13 +8,20 @@ import type { NewsItem } from '@/utils/news/newsOperations';
 import { useQuery } from '@tanstack/react-query';
 import { newsApi } from '@/lib/api';
 import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
+import { Card } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
+
+interface NewsItem {
+  _id: string;
+  title: string;
+  content: string;
+  image?: string;
+  date: string;
+}
 
 const News = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'matches' | 'club'>('all');
-  const [news, setNews] = useState<NewsItem[]>([]);
-
-  // Запрос данных
-  const { data: newsData, isLoading, error } = useQuery({
+  const { data: news, isLoading, error } = useQuery<NewsItem[]>({
     queryKey: ['news'],
     queryFn: newsApi.getAll,
   });
@@ -22,32 +29,34 @@ const News = () => {
   // Подписка на обновления в реальном времени
   useRealTimeUpdates('news:update', ['news']);
 
-  useEffect(() => {
-    if (newsData) {
-      setNews(newsData);
-    }
-  }, [newsData]);
-
-  const filteredNews = news.filter(item => {
-    if (activeFilter === 'all') return true;
-    return item.category === activeFilter;
-  });
-
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-fc-green border-t-transparent"></div>
+      <div className="flex justify-center items-center min-h-screen">
+        <Spinner size="lg" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="text-red-500">Ошибка загрузки новостей</div>
+      <div className="text-center text-red-500 p-4">
+        Произошла ошибка при загрузке новостей
       </div>
     );
   }
+
+  if (!news || news.length === 0) {
+    return (
+      <div className="text-center p-4">
+        Новости пока отсутствуют
+      </div>
+    );
+  }
+
+  const filteredNews = news.filter(item => {
+    if (activeFilter === 'all') return true;
+    return item.category === activeFilter;
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -108,31 +117,22 @@ const News = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredNews.length > 0 ? (
               filteredNews.map((item) => (
-                <div key={item.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="h-48 relative">
-                    {item.image && (
-                      <img 
-                        src={item.image} 
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <span className="px-2 py-1 bg-fc-green text-white text-xs rounded-full">
-                        {item.category === 'matches' ? 'Матчи' : 'Клуб'}
-                      </span>
+                <Card key={item._id} className="overflow-hidden">
+                  {item.image && (
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-48 object-cover"
+                    />
+                  )}
+                  <div className="p-4">
+                    <h2 className="text-xl font-semibold mb-2">{item.title}</h2>
+                    <p className="text-gray-600">{item.content}</p>
+                    <div className="mt-4 text-sm text-gray-500">
+                      {new Date(item.date).toLocaleDateString()}
                     </div>
                   </div>
-                  <div className="p-6">
-                    <h3 className="font-bold text-xl mb-2 line-clamp-2">{item.title}</h3>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.excerpt}</p>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Calendar size={16} className="mr-1" />
-                      <span>{item.date} {item.time}</span>
-                    </div>
-                  </div>
-                </div>
+                </Card>
               ))
             ) : (
               <div className="col-span-full py-12 text-center text-gray-500">
