@@ -5,19 +5,49 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from 'lucide-react';
 import { getAllNews } from '@/utils/news/newsOperations';
 import type { NewsItem } from '@/utils/news/newsOperations';
+import { useQuery } from '@tanstack/react-query';
+import { newsApi } from '@/lib/api';
+import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
 
 const News = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'matches' | 'club'>('all');
   const [news, setNews] = useState<NewsItem[]>([]);
 
+  // Запрос данных
+  const { data: newsData, isLoading, error } = useQuery({
+    queryKey: ['news'],
+    queryFn: newsApi.getAll,
+  });
+
+  // Подписка на обновления в реальном времени
+  useRealTimeUpdates('news:update', ['news']);
+
   useEffect(() => {
-    setNews(getAllNews());
-  }, []);
+    if (newsData) {
+      setNews(newsData);
+    }
+  }, [newsData]);
 
   const filteredNews = news.filter(item => {
     if (activeFilter === 'all') return true;
     return item.category === activeFilter;
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-fc-green border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="text-red-500">Ошибка загрузки новостей</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -80,11 +110,13 @@ const News = () => {
               filteredNews.map((item) => (
                 <div key={item.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="h-48 relative">
-                    <img 
-                      src={item.image || '/placeholder.svg'} 
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                    />
+                    {item.image && (
+                      <img 
+                        src={item.image} 
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                     <div className="absolute bottom-4 left-4 right-4">
                       <span className="px-2 py-1 bg-fc-green text-white text-xs rounded-full">

@@ -13,16 +13,98 @@ import {
 } from '@/components/ui/dialog';
 import NewsEditor from '@/components/admin/news/NewsEditor';
 import { NewsItem, getAllNews, createNews, updateNews, deleteNews } from '@/utils/news/newsOperations';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { newsApi } from '@/lib/api';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const NewsManagement = () => {
+  const queryClient = useQueryClient();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [currentNews, setCurrentNews] = useState<NewsItem | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [editingNews, setEditingNews] = useState(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    image: '',
+    date: new Date().toISOString().split('T')[0],
+  });
+
+  // Запрос данных
+  const { data: newsData, isLoading } = useQuery({
+    queryKey: ['news'],
+    queryFn: newsApi.getAll,
+  });
+
+  // Мутации для создания/обновления/удаления
+  const createMutation = useMutation({
+    mutationFn: newsApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['news'] });
+      toast.success('Новость успешно создана');
+      resetForm();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => newsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['news'] });
+      toast.success('Новость успешно обновлена');
+      resetForm();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: newsApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['news'] });
+      toast.success('Новость успешно удалена');
+    },
+  });
+
+  const resetForm = () => {
+    setEditingNews(null);
+    setFormData({
+      title: '',
+      description: '',
+      image: '',
+      date: new Date().toISOString().split('T')[0],
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (editingNews) {
+      updateMutation.mutate({ id: editingNews.id, data: formData });
+    } else {
+      createMutation.mutate(formData);
+    }
+  };
+
+  const handleEdit = (news) => {
+    setEditingNews(news);
+    setFormData({
+      title: news.title,
+      description: news.description,
+      image: news.image,
+      date: news.date.split('T')[0],
+    });
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm('Вы уверены, что хотите удалить эту новость?')) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   useEffect(() => {
-    setNews(getAllNews());
-  }, []);
+    if (newsData) {
+      setNews(newsData);
+    }
+  }, [newsData]);
 
   const handleAddNew = () => {
     const newNewsItem: NewsItem = {
@@ -40,11 +122,6 @@ const NewsManagement = () => {
     setEditMode(true);
   };
 
-  const handleEdit = (newsItem: NewsItem) => {
-    setCurrentNews(newsItem);
-    setEditMode(true);
-  };
-
   const handleConfirmDelete = (newsId: string) => {
     setConfirmDelete(newsId);
   };
@@ -53,8 +130,7 @@ const NewsManagement = () => {
     if (!confirmDelete) return;
     
     try {
-      deleteNews(confirmDelete);
-      setNews(getAllNews());
+      deleteMutation.mutate(confirmDelete);
       toast({
         title: "Новость удалена",
         description: "Новость была успешно удалена",
@@ -73,13 +149,13 @@ const NewsManagement = () => {
     try {
       const isExisting = news.some(n => n.id === updatedNews.id);
       if (isExisting) {
-        updateNews(updatedNews);
+        updateMutation.mutate({ id: updatedNews.id, data: updatedNews });
         toast({
           title: "Новость обновлена",
           description: "Новость успешно обновлена",
         });
       } else {
-        createNews(updatedNews);
+        createMutation.mutate(updatedNews);
         toast({
           title: "Новость добавлена",
           description: "Новая новость успешно добавлена",
@@ -105,6 +181,14 @@ const NewsManagement = () => {
   const handleCancelDelete = () => {
     setConfirmDelete(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-fc-green border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div>

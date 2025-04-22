@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import socket from "@/lib/socket";
 
 // Enhanced loading component with timeout and retry
 const PageLoading = () => {
@@ -86,7 +87,7 @@ const NewsManagement = lazy(() => import("./pages/admin/NewsManagement").catch((
 const MediaManagement = lazy(() => import("./pages/admin/MediaManagement").catch((e) => { console.error("Failed to load Media Management:", e); throw e; }));
 const MatchesManagement = lazy(() => import("./pages/admin/MatchesManagement").catch((e) => { console.error("Failed to load Matches Management:", e); throw e; }));
 
-// Configure React Query client
+// Configure React Query client with WebSocket support
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -94,14 +95,33 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: 2,
       retryDelay: 1000,
-      suspense: true
+      // Включаем автоматическое обновление данных
+      refetchInterval: false,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
     },
   },
 });
 
 const App = () => {
-  // Preload critical assets
+  const [isSocketConnected, setIsSocketConnected] = useState(socket.connected);
+
   useEffect(() => {
+    // Обработчики событий WebSocket
+    const onConnect = () => {
+      setIsSocketConnected(true);
+      console.log('WebSocket connected');
+    };
+
+    const onDisconnect = () => {
+      setIsSocketConnected(false);
+      console.log('WebSocket disconnected');
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
+    // Preload critical assets
     const preloadImages = [
       "/lovable-uploads/e711e51e-481c-438c-987e-2aa5f999290a.png",
       "/lovable-uploads/10641be5-36c7-4f6d-a5b4-ee39048e40ac.png",
@@ -117,6 +137,12 @@ const App = () => {
     if (loadingEl?.parentNode) {
       loadingEl.parentNode.removeChild(loadingEl);
     }
+
+    // Cleanup
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+    };
   }, []);
 
   return (
@@ -124,7 +150,12 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        {!isSocketConnected && (
+          <div className="fixed bottom-4 right-4 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-md shadow-lg">
+            Переподключение к серверу...
+          </div>
+        )}
+        <BrowserRouter basename="/fdsfsd">
           <Suspense fallback={<PageLoading />}>
             <Routes>
               {/* Public routes */}
