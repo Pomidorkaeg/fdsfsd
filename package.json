@@ -6,11 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "postbuild": "copy dist\\index.html dist\\404.html",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist",
-    "postbuild": "copy dist\\index.html dist\\404.html"
+    "deploy": "gh-pages -d dist"
   },
   "homepage": "https://pomidorkaeg.github.io/fdsfsd/",
   "dependencies": {
@@ -51,6 +51,7 @@
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "node-fetch": "^3.3.2",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",

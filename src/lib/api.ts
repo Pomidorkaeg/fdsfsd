@@ -1,14 +1,7 @@
 import { emitUpdate } from './socket';
 
-interface NewsItem {
-  _id: string;
-  title: string;
-  content: string;
-  image?: string;
-  date: string;
-}
-
-interface PlayerItem {
+// Export types
+export interface PlayerItem {
   _id: string;
   name: string;
   position: string;
@@ -16,7 +9,15 @@ interface PlayerItem {
   image?: string;
 }
 
-interface MediaItem {
+export interface NewsItem {
+  _id: string;
+  title: string;
+  content: string;
+  image?: string;
+  date: string;
+}
+
+export interface MediaItem {
   _id: string;
   title: string;
   type: 'image' | 'video';
@@ -311,4 +312,34 @@ export const tournamentsApi = {
     clearCache();
     emitUpdate('tournaments:update', { id, deleted: true });
   },
+};
+
+// Function to clear all data
+export const clearAllData = async () => {
+  try {
+    // Get all items
+    const players = await playersApi.getAll() as PlayerItem[];
+    const news = await newsApi.getAll() as NewsItem[];
+    const media = await mediaApi.getAll() as MediaItem[];
+    const matches = await matchesApi.getAll() as any[];
+    const teams = await teamsApi.getAll() as any[];
+    const coaches = await coachesApi.getAll() as any[];
+    const tournaments = await tournamentsApi.getAll() as any[];
+
+    // Delete all items
+    await Promise.all([
+      ...players.map(player => playersApi.delete(player._id)),
+      ...news.map(item => newsApi.delete(item._id)),
+      ...media.map(item => mediaApi.delete(item._id)),
+      ...matches.map(match => matchesApi.delete(match._id)),
+      ...teams.map(team => teamsApi.delete(team._id)),
+      ...coaches.map(coach => coachesApi.delete(coach._id)),
+      ...tournaments.map(tournament => tournamentsApi.delete(tournament._id))
+    ]);
+
+    return true;
+  } catch (error) {
+    console.error('Error clearing data:', error);
+    return false;
+  }
 }; 
