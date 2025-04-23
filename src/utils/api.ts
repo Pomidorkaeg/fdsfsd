@@ -1,4 +1,3 @@
-
 import { toast } from '@/components/ui/use-toast';
 
 // Define interfaces for the API responses
@@ -232,23 +231,39 @@ export const getTournamentsList = async (): Promise<Tournament[]> => {
 
 // Функция для получения данных турнира
 export const fetchTournamentData = async (tournamentId: string): Promise<TournamentData> => {
-  console.log(`Fetching data for tournament ID: ${tournamentId}`);
-  
-  // Определяем источник данных по ID турнира
-  let source = "sff-siberia.ru";
-  if (["novosibirsk-championship-2024", "novosibirsk-cup-2024", "novosibirsk-region-cup-2024"].includes(tournamentId)) {
-    source = "ffnso.ru";
-  }
-  
   try {
-    const data = await getTournamentTable(tournamentId, source);
+    // Get the last update timestamp from localStorage
+    const lastUpdateKey = `tournament_${tournamentId}_lastUpdate`;
+    const lastUpdate = localStorage.getItem(lastUpdateKey);
+    const now = new Date().getTime();
+    
+    // If we have cached data and it's less than 5 minutes old, use it
+    if (lastUpdate && (now - parseInt(lastUpdate)) < 5 * 60 * 1000) {
+      const cachedData = localStorage.getItem(`tournament_${tournamentId}_data`);
+      if (cachedData) {
+        return JSON.parse(cachedData);
+      }
+    }
+
+    // Fetch fresh data from the server
+    const response = await fetch(`/api/tournaments/${tournamentId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch tournament data');
+    }
+    
+    const data = await response.json();
+    
+    // Cache the new data
+    localStorage.setItem(`tournament_${tournamentId}_data`, JSON.stringify(data));
+    localStorage.setItem(lastUpdateKey, now.toString());
+    
     return data;
   } catch (error) {
-    console.error("Error fetching tournament data:", error);
+    console.error('Error fetching tournament data:', error);
     toast({
+      title: "Error",
+      description: "Failed to fetch tournament data. Please try again later.",
       variant: "destructive",
-      title: "Ошибка загрузки",
-      description: "Не удалось загрузить данные турнира",
     });
     throw error;
   }
