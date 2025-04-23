@@ -10,7 +10,7 @@ if (!fs.existsSync('.github/workflows')) {
 }
 
 // Копируем файлы
-fs.copyFileSync('dist/404.html', '404.html');
+fs.copyFileSync('dist/index.html', '404.html');
 fs.copyFileSync('dist/.nojekyll', '.nojekyll');
 fs.copyFileSync('.github/workflows/deploy.yml', '.github/workflows/deploy.yml');
 
