@@ -245,10 +245,19 @@ export const fetchTournamentData = async (tournamentId: string): Promise<Tournam
       }
     }
 
+    // Add timeout to the fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     // Fetch fresh data from the server
-    const response = await fetch(`/api/tournaments/${tournamentId}`);
+    const response = await fetch(`/api/tournaments/${tournamentId}`, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error('Failed to fetch tournament data');
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data = await response.json();
@@ -260,9 +269,16 @@ export const fetchTournamentData = async (tournamentId: string): Promise<Tournam
     return data;
   } catch (error) {
     console.error('Error fetching tournament data:', error);
+    
+    // If there's cached data, return it even if it's old
+    const cachedData = localStorage.getItem(`tournament_${tournamentId}_data`);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+
     toast({
-      title: "Error",
-      description: "Failed to fetch tournament data. Please try again later.",
+      title: "Ошибка загрузки",
+      description: "Не удалось загрузить данные турнира. Проверьте подключение к интернету.",
       variant: "destructive",
     });
     throw error;

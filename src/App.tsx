@@ -9,17 +9,23 @@ import socket from "@/lib/socket";
 // Enhanced loading component with timeout and retry
 const PageLoading = () => {
   const [showRetry, setShowRetry] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowRetry(true), 8000);
+    const timer = setTimeout(() => {
+      setShowRetry(true);
+      setError(true);
+    }, 8000);
+
     return () => clearTimeout(timer);
   }, []);
 
-  if (showRetry) {
+  if (error) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <p className="text-xl font-medium text-gray-600">Загрузка занимает больше времени, чем обычно</p>
+          <p className="text-xl font-medium text-gray-600">Проблемы с загрузкой данных</p>
+          <p className="text-gray-500">Проверьте подключение к интернету</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-fc-green text-white rounded-md hover:bg-fc-darkGreen transition-colors"
@@ -35,7 +41,7 @@ const PageLoading = () => {
     <div className="flex h-screen w-full items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-fc-green border-t-transparent"></div>
-        <p className="text-fc-green">Загрузка...</p>
+        <p className="text-fc-green">Загрузка данных...</p>
       </div>
     </div>
   );
