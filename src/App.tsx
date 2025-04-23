@@ -161,7 +161,7 @@ const App = () => {
             Переподключение к серверу...
           </div>
         )}
-        <BrowserRouter basename="/fdsfsd">
+        <BrowserRouter basename={process.env.NODE_ENV === 'production' ? '/fdsfsd' : '/'}>
           <Suspense fallback={<PageLoading />}>
             <Routes>
               {/* Public routes */}

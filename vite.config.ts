@@ -10,7 +10,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: '/fdsfsd/',
+  base: process.env.NODE_ENV === 'production' ? '/fdsfsd/' : '/',
   build: {
     outDir: "dist",
     assetsDir: "assets",
@@ -18,8 +18,8 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: false,
-        drop_debugger: false
+        drop_console: true,
+        drop_debugger: true
       }
     },
     rollupOptions: {

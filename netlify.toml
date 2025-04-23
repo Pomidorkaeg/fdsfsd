@@ -9,6 +9,7 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "no-cache, no-store, must-revalidate"
 
 [[headers]]
   for = "/assets/*"
@@ -23,7 +24,8 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  base = "/"
+  base = "/fdsfsd/"
 
 [build.environment]
   NODE_VERSION = "18"
+  NODE_ENV = "production"
